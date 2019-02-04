@@ -33,7 +33,7 @@ public class PacketCompressor extends MessageToByteEncoder<ByteBuf> {
 			to.writeBytes(from);
 		} else {
 			VarNumberSerializer.writeVarInt(to, readable);
-			to.writeBytes(compressor.compress(MiscSerializer.readAllBytes(from)));
+			compressor.compress(from, to);
 		}
 	}
 
