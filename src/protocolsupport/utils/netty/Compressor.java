@@ -1,15 +1,15 @@
 package protocolsupport.utils.netty;
 
-import java.util.Arrays;
+import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.util.Recycler;
 import io.netty.util.Recycler.Handle;
-import protocolsupport.utils.Utils;
+import net.md_5.bungee.compress.CompressFactory;
+import net.md_5.bungee.jni.zlib.BungeeZlib;
 
 public class Compressor {
-
-	private static final int compressionLevel = Utils.getJavaPropertyValue("compressionlevel", 3, Integer::parseInt);
 
 	private static final Recycler<Compressor> recycler = new Recycler<Compressor>() {
 		@Override
@@ -22,32 +22,30 @@ public class Compressor {
 		return recycler.get();
 	}
 
-	private final Deflater deflater = new Deflater(compressionLevel);
+	private final BungeeZlib zlib = CompressFactory.zlib.newInstance();
 	private final Handle<Compressor> handle;
+
 	protected Compressor(Handle<Compressor> handle) {
 		this.handle = handle;
+		zlib.init( true, Deflater.DEFAULT_COMPRESSION );
 	}
 
-	public byte[] compress(byte[] input) {
-		deflater.setInput(input);
-		deflater.finish();
-		byte[] compressedBuf = new byte[((input.length * 11) / 10) + 50];
-		int size = deflater.deflate(compressedBuf);
-		deflater.reset();
-		return Arrays.copyOf(compressedBuf, size);
+	public void compress(ByteBuf in, ByteBuf out) {
+		try {
+			zlib.process(in, out);
+		} catch (DataFormatException e) {
+			throw new RuntimeException("Failed compressing packet", e);
+		}
 	}
 
 	public void recycle() {
 		handle.recycle(this);
 	}
 
-	public static byte[] compressStatic(byte[] input) {
-		Compressor compressor = create();
-		try {
-			return compressor.compress(input);
-		} finally {
-			compressor.recycle();
-		}
+	@Override
+	public void finalize() throws Throwable {
+		zlib.free();
+		super.finalize();
 	}
 
 }

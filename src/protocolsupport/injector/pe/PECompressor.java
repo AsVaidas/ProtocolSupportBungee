@@ -3,7 +3,7 @@ package protocolsupport.injector.pe;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
-import protocolsupport.protocol.serializer.MiscSerializer;
+
 import protocolsupport.protocol.serializer.VarNumberSerializer;
 import protocolsupport.utils.netty.Allocator;
 import protocolsupport.utils.netty.Compressor;
@@ -23,11 +23,11 @@ public class PECompressor extends MessageToByteEncoder<ByteBuf> {
 	}
 
 	@Override
-	protected void encode(ChannelHandlerContext ctx, ByteBuf buf, ByteBuf out) throws Exception {
-		packbuffer.clear();
+	protected void encode(ChannelHandlerContext ctx, ByteBuf buf, ByteBuf out) {
 		VarNumberSerializer.writeVarInt(packbuffer, buf.readableBytes());
 		packbuffer.writeBytes(buf);
-		out.writeBytes(compressor.compress(MiscSerializer.readAllBytes(packbuffer)));
+		compressor.compress(packbuffer, out);
+		packbuffer.clear();
 	}
 
 }
